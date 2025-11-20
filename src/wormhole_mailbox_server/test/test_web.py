@@ -65,7 +65,6 @@ class LogRequests(ServerBase, unittest.TestCase):
             expected = "ws client connecting: tcp4:127.0.0.1:%d" % client_port
             self.assertEqual(l.mock_calls, [mock.call(expected)])
 
-
     @inlineCallbacks
     def test_no_log_http(self):
         yield self._setup_relay(do_listen=True, web_log_requests=False)
@@ -114,8 +113,7 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
 
     def check_welcome(self, data):
         self.failUnlessIn("welcome", data)
-        self.assertEqual(data["welcome"],
-                             {"current_cli_version": "advertised.version"})
+        self.assertEqual(data["welcome"]["current_cli_version"], "advertised.version")
 
     @inlineCallbacks
     def test_welcome(self):

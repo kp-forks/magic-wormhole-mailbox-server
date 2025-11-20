@@ -112,7 +112,6 @@ class WebSocketServer(websocket.WebSocketServerProtocol):
 
     def onConnect(self, request):
         rv = self.factory._server
-        log.msg("-- CONNECT", request)
         # Caddy uses capitalized headers like X-Real-IP and X-Real-Port, which
         # you see if you forward Caddy to netcat. But the twisted/autobahn
         # Request object lowercases everything.
@@ -137,10 +136,10 @@ class WebSocketServer(websocket.WebSocketServerProtocol):
             else:
                 peer_type = "ipv4"
         self._peer_addr_port = (peer_type, peer_host, int(peer_port))
-        log.msg("peer (from req): [%s, %s, %s]" % (peer_type, peer_host, peer_port))
 
         if rv.get_log_requests():
-            log.msg(f"ws client connecting: {request.peer}")
+            v = 4 if peer_type == "ipv4" else 6
+            log.msg(f"ws client connecting: tcp{v}:{peer_host}:{peer_port}")
         self._reactor = self.factory.reactor
         # can return (name, dict) or name here, where name is
         # WebSocket subprotocol name and dict is extra headers (if
@@ -157,8 +156,11 @@ class WebSocketServer(websocket.WebSocketServerProtocol):
 
     def onOpen(self):
         rv = self.factory._server
-        log.msg("-- OPEN, sending welcome")
-        self.send("welcome", welcome=rv.get_welcome(self))
+        welcome = rv.get_welcome()
+        if self.factory.version > 1:
+            welcome = welcome.copy()
+            welcome["you"] = self.get_you()
+        self.send("welcome", welcome=welcome)
 
     def onMessage(self, payload, isBinary):
         server_rx = time.time()
@@ -344,7 +346,7 @@ class WebSocketServer(websocket.WebSocketServerProtocol):
 class WebSocketServerFactory(websocket.WebSocketServerFactory):
     protocol = WebSocketServer
 
-    def __init__(self, url, server):
+    def __init__(self, url, server, version):
         websocket.WebSocketServerFactory.__init__(self, url)
         self.setProtocolOptions(autoPingInterval=60, autoPingTimeout=600)
         # note: Autobahn uses "self.factory.server" for the Server
