@@ -10,6 +10,9 @@ from ..database import create_or_upgrade_usage_db
 from .common import ServerBase, _Util
 from .ws_client import WSFactory
 
+np1 = "1"
+np2 = "2"
+
 class WebSocketProtocolOptions(unittest.TestCase):
     @mock.patch('wormhole_mailbox_server.web.WebSocketServerFactory')
     def test_set(self, fake_factory):
@@ -222,7 +225,7 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
 
         app = self._server.get_app("appid")
         nameplate_id1 = app.allocate_nameplate("side", 0)
-        app.claim_nameplate("np2", "side", 0)
+        app.claim_nameplate(np2, "side", 0)
 
         c1.send("list")
         m = yield c1.next_non_ack()
@@ -232,7 +235,7 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
             self.assertEqual(type(n), dict)
             self.assertEqual(list(n.keys()), ["id"])
             nids.add(n["id"])
-        self.assertEqual(nids, {nameplate_id1, "np2"})
+        self.assertEqual(nids, {nameplate_id1, np2})
 
     @inlineCallbacks
     def test_allocate(self):
@@ -279,21 +282,21 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         self.assertEqual(err["type"], "error")
         self.assertEqual(err["error"], "claim requires 'nameplate'")
 
-        c1.send("claim", nameplate="np1")
+        c1.send("claim", nameplate=np1)
         m = yield c1.next_non_ack()
         self.assertEqual(m["type"], "claimed")
         mailbox_id = m["mailbox"]
         self.assertEqual(type(mailbox_id), str)
 
-        c1.send("claim", nameplate="np1")
+        c1.send("claim", nameplate=np1)
         err = yield c1.next_non_ack()
         self.assertEqual(err["type"], "error", err)
         self.assertEqual(err["error"], "only one claim per connection")
 
         nids = app.get_nameplate_ids()
         self.assertEqual(len(nids), 1)
-        self.assertEqual("np1", list(nids)[0])
-        np_row, side_rows = self._nameplate(app, "np1")
+        self.assertEqual(np1, list(nids)[0])
+        np_row, side_rows = self._nameplate(app, np1)
         self.assertEqual(len(side_rows), 1)
         self.assertEqual(side_rows[0]["side"], "side")
 
@@ -310,11 +313,11 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         c1.send("bind", appid="appid", side="side")
         app = self._server.get_app("appid")
 
-        app.claim_nameplate("np1", "side1", 0)
-        app.claim_nameplate("np1", "side2", 0)
+        app.claim_nameplate(np1, "side1", 0)
+        app.claim_nameplate(np1, "side2", 0)
 
         # the third claim will signal crowding
-        c1.send("claim", nameplate="np1")
+        c1.send("claim", nameplate=np1)
         err = yield c1.next_non_ack()
         self.assertEqual(err["type"], "error")
         self.assertEqual(err["error"], "crowded")
@@ -326,7 +329,7 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         c1.send("bind", appid="appid", side="side")
         app = self._server.get_app("appid")
 
-        app.claim_nameplate("np1", "side2", 0)
+        app.claim_nameplate(np1, "side2", 0)
 
         c1.send("release") # didn't do claim first
         err = yield c1.next_non_ack()
@@ -334,14 +337,14 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         self.assertEqual(err["error"],
                          "release without nameplate must follow claim")
 
-        c1.send("claim", nameplate="np1")
+        c1.send("claim", nameplate=np1)
         yield c1.next_non_ack()
 
         c1.send("release")
         m = yield c1.next_non_ack()
         self.assertEqual(m["type"], "released", m)
 
-        np_row, side_rows = self._nameplate(app, "np1")
+        np_row, side_rows = self._nameplate(app, np1)
         claims = [(row["side"], row["claimed"]) for row in side_rows]
         self.assertIn(("side", False), claims)
         self.assertIn(("side2", True), claims)
@@ -357,10 +360,10 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         yield c1.next_non_ack()
         c1.send("bind", appid="appid", side="side")
 
-        c1.send("claim", nameplate="np1")
+        c1.send("claim", nameplate=np1)
         yield c1.next_non_ack()
 
-        c1.send("release", nameplate="np1")
+        c1.send("release", nameplate=np1)
         m = yield c1.next_non_ack()
         self.assertEqual(m["type"], "released", m)
 
@@ -370,7 +373,7 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         yield c1.next_non_ack()
         c1.send("bind", appid="appid", side="side")
 
-        c1.send("release", nameplate="np1") # didn't do claim first, ignored
+        c1.send("release", nameplate=np1) # didn't do claim first, ignored
         m = yield c1.next_non_ack()
         self.assertEqual(m["type"], "released", m)
 
@@ -380,10 +383,10 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         yield c1.next_non_ack()
         c1.send("bind", appid="appid", side="side")
 
-        c1.send("claim", nameplate="np1")
+        c1.send("claim", nameplate=np1)
         yield c1.next_non_ack()
 
-        c1.send("release", nameplate="np2") # mismatching nameplate
+        c1.send("release", nameplate=np2) # mismatching nameplate
         err = yield c1.next_non_ack()
         self.assertEqual(err["type"], "error")
         self.assertEqual(err["error"],
@@ -435,8 +438,8 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         c1.send("bind", appid="appid", side="side")
         app = self._server.get_app("appid")
 
-        mbid = app.claim_nameplate("np1", "side1", 0)
-        app.claim_nameplate("np1", "side2", 0)
+        mbid = app.claim_nameplate(np1, "side1", 0)
+        app.claim_nameplate(np1, "side2", 0)
 
         # the third open will signal crowding
         c1.send("open", mailbox=mbid)
@@ -550,8 +553,8 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         c1.send("bind", appid="appid", side="side")
         app = self._server.get_app("appid")
 
-        mbid = app.claim_nameplate("np1", "side1", 0)
-        app.claim_nameplate("np1", "side2", 0)
+        mbid = app.claim_nameplate(np1, "side1", 0)
+        app.claim_nameplate(np1, "side2", 0)
 
         # a close that allocates a third side will signal crowding
         c1.send("close", mailbox=mbid)
@@ -591,12 +594,12 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         c.send("bind", appid="appid", side="side")
         app = self._server.get_app("appid")
 
-        c.send("claim", nameplate="np1")
+        c.send("claim", nameplate=np1)
         m = yield c.next_non_ack()
         self.assertEqual(m["type"], "claimed")
         mailbox_id = m["mailbox"]
         self.assertEqual(type(mailbox_id), str)
-        np_row, side_rows = self._nameplate(app, "np1")
+        np_row, side_rows = self._nameplate(app, np1)
         claims = [(row["side"], row["claimed"]) for row in side_rows]
         self.assertEqual(claims, [("side", True)])
         c.close()
@@ -605,11 +608,11 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         c = yield self.make_client()
         yield c.next_non_ack()
         c.send("bind", appid="appid", side="side")
-        c.send("claim", nameplate="np1") # idempotent
+        c.send("claim", nameplate=np1) # idempotent
         m = yield c.next_non_ack()
         self.assertEqual(m["type"], "claimed")
         self.assertEqual(m["mailbox"], mailbox_id) # mailbox id is stable
-        np_row, side_rows = self._nameplate(app, "np1")
+        np_row, side_rows = self._nameplate(app, np1)
         claims = [(row["side"], row["claimed"]) for row in side_rows]
         self.assertEqual(claims, [("side", True)])
         c.close()
@@ -620,10 +623,10 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         c.send("bind", appid="appid", side="side")
         # we haven't done a claim with this particular connection, but we can
         # still send a release as long as we include the nameplate
-        c.send("release", nameplate="np1") # release-without-claim
+        c.send("release", nameplate=np1) # release-without-claim
         m = yield c.next_non_ack()
         self.assertEqual(m["type"], "released")
-        np_row, side_rows = self._nameplate(app, "np1")
+        np_row, side_rows = self._nameplate(app, np1)
         self.assertEqual(np_row, None)
         c.close()
         yield c.d
@@ -632,10 +635,10 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         yield c.next_non_ack()
         c.send("bind", appid="appid", side="side")
         # and the release is idempotent, when done on separate connections
-        c.send("release", nameplate="np1")
+        c.send("release", nameplate=np1)
         m = yield c.next_non_ack()
         self.assertEqual(m["type"], "released")
-        np_row, side_rows = self._nameplate(app, "np1")
+        np_row, side_rows = self._nameplate(app, np1)
         self.assertEqual(np_row, None)
         c.close()
         yield c.d
@@ -654,14 +657,14 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         c = yield self.make_client()
         yield c.next_non_ack()
         c.send("bind", appid="appid", side="side")
-        c.send("claim", nameplate="np2")
+        c.send("claim", nameplate=np2)
         m = yield c.next_non_ack()
         self.assertEqual(m["type"], "claimed")
-        app.claim_nameplate("np2", "side2", 0)
-        c.send("release", nameplate="np2")
+        app.claim_nameplate(np2, "side2", 0)
+        c.send("release", nameplate=np2)
         m = yield c.next_non_ack()
         self.assertEqual(m["type"], "released")
-        np_row, side_rows = self._nameplate(app, "np2")
+        np_row, side_rows = self._nameplate(app, np2)
         claims = sorted([(row["side"], row["claimed"]) for row in side_rows])
         self.assertEqual(claims, [("side", 0), ("side2", 1)])
         c.close()
@@ -670,12 +673,12 @@ class WebSocketAPI(_Util, ServerBase, unittest.TestCase):
         c = yield self.make_client()
         yield c.next_non_ack()
         c.send("bind", appid="appid", side="side")
-        c.send("claim", nameplate="np2") # new claim is forbidden
+        c.send("claim", nameplate=np2) # new claim is forbidden
         err = yield c.next_non_ack()
         self.assertEqual(err["type"], "error")
         self.assertEqual(err["error"], "reclaimed")
 
-        np_row, side_rows = self._nameplate(app, "np2")
+        np_row, side_rows = self._nameplate(app, np2)
         claims = sorted([(row["side"], row["claimed"]) for row in side_rows])
         self.assertEqual(claims, [("side", 0), ("side2", 1)])
         c.close()

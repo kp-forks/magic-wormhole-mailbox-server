@@ -6,6 +6,7 @@ from ..server import (make_server, Usage,
                       SidedMessage, CrowdedError, AppNamespace)
 from ..database import create_channel_db, create_usage_db
 
+npid = "1"
 
 class Server(_Util, ServerBase, unittest.TestCase):
     def test_apps(self):
@@ -323,17 +324,17 @@ class Prune(unittest.TestCase):
         app = rv.get_app(APPID)
 
         # Exercise the first-vs-second newness tests
-        app.claim_nameplate("np-1", "side1", 1)
-        app.claim_nameplate("np-2", "side1", 1)
-        app.claim_nameplate("np-2", "side2", 2)
-        app.claim_nameplate("np-3", "side1", 60)
-        new_nameplates.add("np-3")
-        app.claim_nameplate("np-4", "side1", 1)
-        app.claim_nameplate("np-4", "side2", 60)
-        new_nameplates.add("np-4")
-        app.claim_nameplate("np-5", "side1", 60)
-        app.claim_nameplate("np-5", "side2", 61)
-        new_nameplates.add("np-5")
+        app.claim_nameplate("1", "side1", 1)
+        app.claim_nameplate("2", "side1", 1)
+        app.claim_nameplate("2", "side2", 2)
+        app.claim_nameplate("3", "side1", 60)
+        new_nameplates.add("3")
+        app.claim_nameplate("4", "side1", 1)
+        app.claim_nameplate("4", "side2", 60)
+        new_nameplates.add("4")
+        app.claim_nameplate("5", "side1", 60)
+        app.claim_nameplate("5", "side2", 61)
+        new_nameplates.add("5")
 
         rv.prune_all_apps(now=123, old=50)
 
@@ -404,7 +405,7 @@ class Prune(unittest.TestCase):
 
         mbid = "mbid"
         if nameplate:
-            mbid = app.claim_nameplate("npid", "side1", when[mailbox])
+            mbid = app.claim_nameplate(npid, "side1", when[mailbox])
         mb = app.open_mailbox(mbid, "side1", when[mailbox])
 
         # the pruning algorithm doesn't care about the age of messages,
@@ -519,7 +520,7 @@ class Summary(unittest.TestCase):
         rv = make_server(db, blur_usage=3600, usage_db=usage_db)
         APPID = "appid"
         app = rv.get_app(APPID)
-        app.claim_nameplate("npid", "side1", 10) # start time is 10
+        app.claim_nameplate(npid, "side1", 10) # start time is 10
         rv.prune_all_apps(now=123, old=50)
         # start time should be rounded to top of the hour (blur_usage=3600)
         row = usage_db.execute("SELECT * FROM `nameplates`").fetchone()
@@ -537,7 +538,7 @@ class Summary(unittest.TestCase):
         rv = make_server(db, blur_usage=None, usage_db=usage_db)
         APPID = "appid"
         app = rv.get_app(APPID)
-        app.claim_nameplate("npid", "side1", 10) # start time is 10
+        app.claim_nameplate(npid, "side1", 10) # start time is 10
         rv.prune_all_apps(now=123, old=50)
         row = usage_db.execute("SELECT * FROM `nameplates`").fetchone()
         self.assertEqual(row["started"], 10)

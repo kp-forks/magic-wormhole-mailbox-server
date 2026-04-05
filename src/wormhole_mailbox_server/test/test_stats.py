@@ -3,6 +3,8 @@ from twisted.trial import unittest
 from ..database import create_channel_db, create_usage_db
 from ..server import make_server, CrowdedError
 
+np1 = "1"
+
 class _Make:
     def make(self, blur_usage=None, with_usage_db=True):
         self._cdb = create_channel_db(":memory:")
@@ -68,27 +70,27 @@ class ClientVersion(_Make, unittest.TestCase):
 class Nameplate(_Make, unittest.TestCase):
     def test_nameplate_happy(self):
         s, db, app = self.make()
-        app.claim_nameplate("n1", "s1", 1)
-        app.claim_nameplate("n1", "s2", 3)
-        app.release_nameplate("n1", "s1", 6)
+        app.claim_nameplate(np1, "s1", 1)
+        app.claim_nameplate(np1, "s2", 3)
+        app.release_nameplate(np1, "s1", 6)
         self.assertEqual(db.execute("SELECT * FROM `nameplates`").fetchall(),
                          [])
-        app.release_nameplate("n1", "s2", 10)
+        app.release_nameplate(np1, "s2", 10)
         self.assertEqual(db.execute("SELECT * FROM `nameplates`").fetchall(),
                          [dict(app_id="appid", result="happy",
                                started=1, waiting_time=2, total_time=9)])
 
     def test_nameplate_lonely(self):
         s, db, app = self.make()
-        app.claim_nameplate("n1", "s1", 1)
-        app.release_nameplate("n1", "s1", 6)
+        app.claim_nameplate(np1, "s1", 1)
+        app.release_nameplate(np1, "s1", 6)
         self.assertEqual(db.execute("SELECT * FROM `nameplates`").fetchall(),
                          [dict(app_id="appid", result="lonely",
                                started=1, waiting_time=None, total_time=5)])
 
     def test_nameplate_pruney(self):
         s, db, app = self.make()
-        app.claim_nameplate("n1", "s1", 1)
+        app.claim_nameplate(np1, "s1", 1)
         app.prune(10, 5) # prune at t=10, anything earlier than 5 is "old"
         self.assertEqual(db.execute("SELECT * FROM `nameplates`").fetchall(),
                          [dict(app_id="appid", result="pruney",
@@ -96,16 +98,16 @@ class Nameplate(_Make, unittest.TestCase):
 
     def test_nameplate_crowded(self):
         s, db, app = self.make()
-        app.claim_nameplate("n1", "s1", 1)
-        app.claim_nameplate("n1", "s2", 2)
+        app.claim_nameplate(np1, "s1", 1)
+        app.claim_nameplate(np1, "s2", 2)
         with self.assertRaises(CrowdedError):
-            app.claim_nameplate("n1", "s3", 3)
+            app.claim_nameplate(np1, "s3", 3)
         self.assertEqual(db.execute("SELECT * FROM `nameplates`").fetchall(),
                          [])
-        app.release_nameplate("n1", "s1", 4)
+        app.release_nameplate(np1, "s1", 4)
         self.assertEqual(db.execute("SELECT * FROM `nameplates`").fetchall(),
                          [])
-        app.release_nameplate("n1", "s2", 5)
+        app.release_nameplate(np1, "s2", 5)
         self.assertEqual(db.execute("SELECT * FROM `nameplates`").fetchall(),
                          [])
         #print(self._cdb.execute("SELECT * FROM `nameplates`").fetchall())
@@ -113,17 +115,17 @@ class Nameplate(_Make, unittest.TestCase):
         # TODO: to get "crowded", we need all three sides to release the
         # nameplate, even though the third side threw CrowdedError and thus
         # probably doesn't think it has a claim
-        app.release_nameplate("n1", "s3", 6)
+        app.release_nameplate(np1, "s3", 6)
         self.assertEqual(db.execute("SELECT * FROM `nameplates`").fetchall(),
                          [dict(app_id="appid", result="crowded",
                                started=1, waiting_time=1, total_time=5)])
 
     def test_nameplate_crowded_pruned(self):
         s, db, app = self.make()
-        app.claim_nameplate("n1", "s1", 1)
-        app.claim_nameplate("n1", "s2", 2)
+        app.claim_nameplate(np1, "s1", 1)
+        app.claim_nameplate(np1, "s2", 2)
         with self.assertRaises(CrowdedError):
-            app.claim_nameplate("n1", "s3", 3)
+            app.claim_nameplate(np1, "s3", 3)
         self.assertEqual(db.execute("SELECT * FROM `nameplates`").fetchall(),
                          [])
         app.prune(10, 5)
@@ -133,18 +135,18 @@ class Nameplate(_Make, unittest.TestCase):
 
     def test_no_db(self):
         s, db, app = self.make(with_usage_db=False)
-        app.claim_nameplate("n1", "s1", 1)
-        app.release_nameplate("n1", "s1", 6)
+        app.claim_nameplate(np1, "s1", 1)
+        app.release_nameplate(np1, "s1", 6)
         s.dump_stats(3, 1)
 
     def test_nameplate_happy_blur_usage(self):
         s, db, app = self.make(blur_usage=20)
-        app.claim_nameplate("n1", "s1", 21)
-        app.claim_nameplate("n1", "s2", 23)
-        app.release_nameplate("n1", "s1", 26)
+        app.claim_nameplate(np1, "s1", 21)
+        app.claim_nameplate(np1, "s2", 23)
+        app.release_nameplate(np1, "s1", 26)
         self.assertEqual(db.execute("SELECT * FROM `nameplates`").fetchall(),
                          [])
-        app.release_nameplate("n1", "s2", 30)
+        app.release_nameplate(np1, "s2", 30)
         self.assertEqual(db.execute("SELECT * FROM `nameplates`").fetchall(),
                          [dict(app_id="appid", result="happy",
                                started=20, waiting_time=2, total_time=9)])
@@ -152,8 +154,8 @@ class Nameplate(_Make, unittest.TestCase):
 class Mailbox(_Make, unittest.TestCase):
     def test_mailbox_prune_quiet(self):
         s, db, app = self.make()
-        app.claim_nameplate("n1", "s1", 1)
-        app.release_nameplate("n1", "s1", 2)
+        app.claim_nameplate(np1, "s1", 1)
+        app.release_nameplate(np1, "s1", 2)
         app.prune(10, 5)
         self.assertEqual(db.execute("SELECT * FROM `mailboxes`").fetchall(),
                          [dict(app_id="appid", for_nameplate=1, result="pruney",
@@ -161,9 +163,9 @@ class Mailbox(_Make, unittest.TestCase):
 
     def test_mailbox_lonely(self):
         s, db, app = self.make()
-        mid = app.claim_nameplate("n1", "s1", 1)
+        mid = app.claim_nameplate(np1, "s1", 1)
         mbox = app.open_mailbox(mid, "s1", 2)
-        app.release_nameplate("n1", "s1", 3)
+        app.release_nameplate(np1, "s1", 3)
         mbox.close("s1", "mood-ignored", 4)
         self.assertEqual(db.execute("SELECT * FROM `mailboxes`").fetchall(),
                          [dict(app_id="appid", for_nameplate=1, result="lonely",
@@ -171,9 +173,9 @@ class Mailbox(_Make, unittest.TestCase):
 
     def test_mailbox_happy(self):
         s, db, app = self.make()
-        mid = app.claim_nameplate("n1", "s1", 1)
+        mid = app.claim_nameplate(np1, "s1", 1)
         mbox1 = app.open_mailbox(mid, "s1", 2)
-        app.release_nameplate("n1", "s1", 3)
+        app.release_nameplate(np1, "s1", 3)
         mbox2 = app.open_mailbox(mid, "s2", 4)
         mbox1.close("s1", "happy", 5)
         mbox2.close("s2", "happy", 6)
@@ -183,9 +185,9 @@ class Mailbox(_Make, unittest.TestCase):
 
     def test_mailbox_happy_blur_usage(self):
         s, db, app = self.make(blur_usage=20)
-        mid = app.claim_nameplate("n1", "s1", 21)
+        mid = app.claim_nameplate(np1, "s1", 21)
         mbox1 = app.open_mailbox(mid, "s1", 22)
-        app.release_nameplate("n1", "s1", 23)
+        app.release_nameplate(np1, "s1", 23)
         mbox2 = app.open_mailbox(mid, "s2", 24)
         mbox1.close("s1", "happy", 25)
         mbox2.close("s2", "happy", 26)
@@ -198,9 +200,9 @@ class Mailbox(_Make, unittest.TestCase):
         # connect, but then at least one side says they're lonely when they
         # close.
         s, db, app = self.make()
-        mid = app.claim_nameplate("n1", "s1", 1)
+        mid = app.claim_nameplate(np1, "s1", 1)
         mbox1 = app.open_mailbox(mid, "s1", 2)
-        app.release_nameplate("n1", "s1", 3)
+        app.release_nameplate(np1, "s1", 3)
         mbox2 = app.open_mailbox(mid, "s2", 4)
         mbox1.close("s1", "lonely", 5)
         mbox2.close("s2", "happy", 6)
@@ -210,9 +212,9 @@ class Mailbox(_Make, unittest.TestCase):
 
     def test_mailbox_scary(self):
         s, db, app = self.make()
-        mid = app.claim_nameplate("n1", "s1", 1)
+        mid = app.claim_nameplate(np1, "s1", 1)
         mbox1 = app.open_mailbox(mid, "s1", 2)
-        app.release_nameplate("n1", "s1", 3)
+        app.release_nameplate(np1, "s1", 3)
         mbox2 = app.open_mailbox(mid, "s2", 4)
         mbox1.close("s1", "scary", 5)
         mbox2.close("s2", "happy", 6)
@@ -222,9 +224,9 @@ class Mailbox(_Make, unittest.TestCase):
 
     def test_mailbox_errory(self):
         s, db, app = self.make()
-        mid = app.claim_nameplate("n1", "s1", 1)
+        mid = app.claim_nameplate(np1, "s1", 1)
         mbox1 = app.open_mailbox(mid, "s1", 2)
-        app.release_nameplate("n1", "s1", 3)
+        app.release_nameplate(np1, "s1", 3)
         mbox2 = app.open_mailbox(mid, "s2", 4)
         mbox1.close("s1", "errory", 5)
         mbox2.close("s2", "happy", 6)
@@ -234,9 +236,9 @@ class Mailbox(_Make, unittest.TestCase):
 
     def test_mailbox_errory_scary(self):
         s, db, app = self.make()
-        mid = app.claim_nameplate("n1", "s1", 1)
+        mid = app.claim_nameplate(np1, "s1", 1)
         mbox1 = app.open_mailbox(mid, "s1", 2)
-        app.release_nameplate("n1", "s1", 3)
+        app.release_nameplate(np1, "s1", 3)
         mbox2 = app.open_mailbox(mid, "s2", 4)
         mbox1.close("s1", "errory", 5)
         mbox2.close("s2", "scary", 6)
@@ -246,9 +248,9 @@ class Mailbox(_Make, unittest.TestCase):
 
     def test_mailbox_crowded(self):
         s, db, app = self.make()
-        mid = app.claim_nameplate("n1", "s1", 1)
+        mid = app.claim_nameplate(np1, "s1", 1)
         mbox1 = app.open_mailbox(mid, "s1", 2)
-        app.release_nameplate("n1", "s1", 3)
+        app.release_nameplate(np1, "s1", 3)
         mbox2 = app.open_mailbox(mid, "s2", 4)
         with self.assertRaises(CrowdedError):
             app.open_mailbox(mid, "s3", 5)
