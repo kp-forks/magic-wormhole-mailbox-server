@@ -115,6 +115,11 @@ class WebSocketServer(websocket.WebSocketServerProtocol):
         # Caddy uses capitalized headers like X-Real-IP and X-Real-Port, which
         # you see if you forward Caddy to netcat. But the twisted/autobahn
         # Request object lowercases everything.
+        #
+        # We only use this for assistance in NAT hole-punching, so it
+        # doesn't matter if the client is able to inject their own
+        # headers and spoof somebody else's IP address, they're only
+        # hurting themselves
         if "x-real-ip" in request.headers:
             peer_host = request.headers.get("x-real-ip") # either 1.2.3.4 or 2600:..:1234
             peer_port = request.headers.get("x-real-port")
