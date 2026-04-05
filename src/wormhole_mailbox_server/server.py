@@ -1,10 +1,20 @@
-import os, random, base64
+import os, random, base64, re
 from collections import namedtuple
 from twisted.python import log
 from twisted.application import service
 
 def generate_mailbox_id():
     return base64.b32encode(os.urandom(8)).lower().strip(b"=").decode("ascii")
+
+NAMEPLATE_RE = re.compile(r'^\d+$')
+
+def check_valid_nameplate(n):
+    if not isinstance(n, str):
+        raise ValueError("nameplate %r is %s not str" % (n, type(n)))
+    if len(n) > 40:
+        raise ValueError("nameplate %s .. is too long, %d>40" % (repr(n)[:50], len(n)))
+    if not NAMEPLATE_RE.search(n):
+        raise ValueError("nameplate %s has non-digits" % (n,))
 
 class CrowdedError(Exception):
     pass
@@ -244,6 +254,7 @@ class AppNamespace:
         #  * a mailbox 'side' will be attached, with opened=True
         assert isinstance(name, str), type(name)
         assert isinstance(side, str), type(side)
+        check_valid_nameplate(name)
         db = self._db
         row = db.execute("SELECT * FROM `nameplates`"
                          " WHERE `app_id`=? AND `name`=?",

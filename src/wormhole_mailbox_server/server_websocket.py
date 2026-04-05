@@ -2,7 +2,7 @@ import time
 from twisted.internet import reactor
 from twisted.python import log
 from autobahn.twisted import websocket
-from .server import CrowdedError, ReclaimedError, SidedMessage
+from .server import CrowdedError, ReclaimedError, SidedMessage, check_valid_nameplate
 from .util import dict_to_bytes, bytes_to_dict
 
 # The WebSocket allows the client to send "commands" to the server, and the
@@ -196,7 +196,7 @@ class WebSocketServer(websocket.WebSocketServerProtocol):
             raise Error("only one claim per connection")
         self._did_claim = True
         nameplate_id = msg["nameplate"]
-        assert isinstance(nameplate_id, str), type(nameplate_id)
+        check_valid_nameplate(nameplate_id)
         self._nameplate_id = nameplate_id
         try:
             mailbox_id = self._app.claim_nameplate(nameplate_id, self._side,
@@ -212,6 +212,8 @@ class WebSocketServer(websocket.WebSocketServerProtocol):
             raise Error("only one release per connection")
         if "nameplate" in msg:
             if self._nameplate_id is not None:
+                # we only care about equality, don't bother with
+                # check_valid_nameplate()
                 if msg["nameplate"] != self._nameplate_id:
                     raise Error("release and claim must use same nameplate")
             nameplate_id = msg["nameplate"]
