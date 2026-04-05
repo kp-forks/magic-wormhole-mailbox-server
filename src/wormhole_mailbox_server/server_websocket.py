@@ -150,7 +150,7 @@ class WebSocketServer(websocket.WebSocketServerProtocol):
         # WebSocket subprotocol name and dict is extra headers (if
         # provided) to send
 
-    def get_you(self):
+    def get_your_address(self):
         (peer_type, peer_host, peer_port) = self._peer_addr_port
         you = { "port": peer_port }
         if peer_type == "ipv4":
@@ -161,10 +161,8 @@ class WebSocketServer(websocket.WebSocketServerProtocol):
 
     def onOpen(self):
         rv = self.factory._server
-        welcome = rv.get_welcome()
-        if self.factory.version > 1:
-            welcome = welcome.copy()
-            welcome["you"] = self.get_you()
+        welcome = rv.get_welcome().copy()
+        welcome["your-address"] = self.get_your_address()
         self.send("welcome", welcome=welcome)
 
     def onMessage(self, payload, isBinary):
@@ -351,7 +349,7 @@ class WebSocketServer(websocket.WebSocketServerProtocol):
 class WebSocketServerFactory(websocket.WebSocketServerFactory):
     protocol = WebSocketServer
 
-    def __init__(self, url, server, version):
+    def __init__(self, url, server):
         websocket.WebSocketServerFactory.__init__(self, url)
         self.setProtocolOptions(autoPingInterval=60, autoPingTimeout=600)
         # note: Autobahn uses "self.factory.server" for the Server

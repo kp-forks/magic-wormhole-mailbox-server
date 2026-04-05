@@ -18,12 +18,9 @@ class PrivacyEnhancedSite(server.Site):
 
 def make_web_server(server, log_requests, websocket_protocol_options=()):
     root = Root()
-
-    for version in (1, 2):
-        wsrf = WebSocketServerFactory(None, server, version=version)
-        wsrf.setProtocolOptions(**dict(websocket_protocol_options))
-        path = f"v{version}".encode("utf8")
-        root.putChild(path, WebSocketResource(wsrf))
+    wsrf = WebSocketServerFactory(None, server)
+    wsrf.setProtocolOptions(**dict(websocket_protocol_options))
+    root.putChild(b"v1", WebSocketResource(wsrf))
 
     site = PrivacyEnhancedSite(root)
     site.logRequests = log_requests
