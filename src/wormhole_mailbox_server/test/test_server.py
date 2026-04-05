@@ -345,6 +345,14 @@ class Prune(unittest.TestCase):
                          db.execute("SELECT * FROM `mailboxes`").fetchall()}
         self.assertEqual(len(new_nameplates), len(mailboxes))
 
+        self.assertRaises(ValueError,
+                          app.claim_nameplate, "letters", "side1", 1)
+        long_but_ok = "1234"*10
+        app.claim_nameplate(long_but_ok, "side1", 1)
+        too_long = long_but_ok + "5"
+        self.assertRaises(ValueError,
+                          app.claim_nameplate, too_long, "side1", 1)
+
     def test_mailboxes(self):
         db = create_channel_db(":memory:")
         rv = make_server(db, blur_usage=3600)
