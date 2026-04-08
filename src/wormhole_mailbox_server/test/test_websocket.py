@@ -1,8 +1,7 @@
 from twisted.trial import unittest
 from twisted.internet.defer import inlineCallbacks
-from twisted.internet.task import deferLater
 from twisted.internet.address import IPv4Address
-from ..server_websocket import WebSocketServerFactory, WebSocketServer
+from ..server_websocket import WebSocketServerFactory
 from autobahn.twisted.testing import create_pumper, create_memory_agent, MemoryReactorClockResolver
 from autobahn.twisted.websocket import WebSocketClientProtocol
 
