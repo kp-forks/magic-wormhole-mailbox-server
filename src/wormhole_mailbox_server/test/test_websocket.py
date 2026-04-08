@@ -2,7 +2,7 @@ from twisted.trial import unittest
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.address import IPv4Address
 from ..server_websocket import WebSocketServerFactory
-from autobahn.twisted.testing import create_pumper, create_memory_agent, MemoryReactorClockResolver
+from autobahn.twisted.testing import create_pumper, create_memory_agent, MemoryReactorClock
 from autobahn.twisted.websocket import WebSocketClientProtocol
 
 
@@ -28,7 +28,7 @@ class WebSocket(unittest.TestCase):
 
     def setUp(self):
         self.pumper = create_pumper()
-        self.reactor = MemoryReactorClockResolver()
+        self.reactor = MemoryReactorClock()
         return self.pumper.start()
 
     def tearDown(self):
