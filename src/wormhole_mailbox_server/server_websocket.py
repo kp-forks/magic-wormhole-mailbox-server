@@ -155,7 +155,7 @@ class WebSocketServer(websocket.WebSocketServerProtocol):
         you = { "port": peer_port }
         if peer_type == "ipv4":
             you["ipv4"] = peer_host
-        elif peer_host == "ipv6":
+        elif peer_type == "ipv6":
             you["ipv6"] = peer_host
         return you
 
