@@ -4,7 +4,16 @@ User-visible changes in "magic-wormhole-mailbox-server":
 ## Upcoming
 
 * (put release-notes here when merging / proposing a PR)
-* CI no longer tests Python 3.9 (it is EOL)
+
+
+## Release 0.7.0 (14-May-2026)
+
+* CI no longer tests Python 3.9 @meejah
+* CI now tests 3.14 @meejah
+* non-numeric nameplates rejected with error (@meejah)
+* more-complete sequence and state diagrams (@meejah)
+* update Munin plugin shebang (@warner)
+* Munin plugins open db read-only (@warner)
 
 
 ## Release 0.6.0 (13-Feb-2026)
