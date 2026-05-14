@@ -110,13 +110,16 @@ class WebSocketServer(websocket.WebSocketServerProtocol):
         self._did_close = False
 
     def onConnect(self, request):
-        rv = self.factory.server
+        rv = self.factory._server
         if rv.get_log_requests():
             log.msg(f"ws client connecting: {request.peer}")
         self._reactor = self.factory.reactor
+        # can return (name, dict) or name here, where name is
+        # WebSocket subprotocol name and dict is extra headers (if
+        # provided) to send
 
     def onOpen(self):
-        rv = self.factory.server
+        rv = self.factory._server
         self.send("welcome", welcome=rv.get_welcome())
 
     def onMessage(self, payload, isBinary):
@@ -167,7 +170,7 @@ class WebSocketServer(websocket.WebSocketServerProtocol):
             raise Error("bind requires 'appid'")
         if "side" not in msg:
             raise Error("bind requires 'side'")
-        self._app = self.factory.server.get_app(msg["appid"])
+        self._app = self.factory._server.get_app(msg["appid"])
         self._side = msg["side"]
         client_version = msg.get("client_version", (None, None))
         # e.g. ("python", "0.xyz") . <=0.10.5 did not send client_version
@@ -306,5 +309,9 @@ class WebSocketServerFactory(websocket.WebSocketServerFactory):
     def __init__(self, url, server):
         websocket.WebSocketServerFactory.__init__(self, url)
         self.setProtocolOptions(autoPingInterval=60, autoPingTimeout=600)
-        self.server = server
+        # note: Autobahn uses "self.factory.server" for the Server
+        # version string, so we musn't use that as well.
+        self._server = server
+        from . import __version__
+        self.server = f"Magic Wormhole Mailbox {__version__}"
         self.reactor = reactor # for tests to control
