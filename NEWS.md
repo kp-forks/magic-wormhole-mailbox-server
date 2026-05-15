@@ -5,8 +5,12 @@ User-visible changes in "magic-wormhole-mailbox-server":
 ## Upcoming
 
 * (put release-notes here when merging / proposing a PR)
+
+
+## Release 0.8.0 (15-May-2026)
+
 * Server header properly reports version (#27)
-* introduce a ``"your-address"`` key to the ``"welcome"`` message (to reflect the IP address and port back)
+* introduce a ``"your-address"`` key to the ``"welcome"`` message (to reflect the IP address and port back, #63)
 
 
 ## Release 0.7.0 (14-May-2026)
